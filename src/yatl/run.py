@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -49,7 +50,7 @@ def run_tests_concurrently(runner, test_path: str = ".", max_workers: int = 10) 
             print(error(f"{len(error_messages)} test(s) failed"))
             for message in error_messages:
                 print(error(message))
-            SystemExit(1)
+            sys.exit(1)
 
 
 def run_test_not_concurrently(runner, test_path: str = ".") -> None:
