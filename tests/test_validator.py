@@ -3,7 +3,68 @@ import json
 import pytest
 from requests import Response
 
-from src.yatl.validator import validate_json_body, validate_xml_body
+from src.yatl.validator import (
+    validate_json_body,
+    validate_xml_body,
+    coerce_to_actual_type,
+)
+
+
+@pytest.mark.parametrize(
+    "expected, actual, expected_result",
+    [
+        # int
+        ("42", 42, 42),
+        ("0", 0, 0),
+        ("not_a_number", 42, "not_a_number"),  # not convertible
+        # float
+        ("3.14", 3.14, 3.14),
+        ("42", 42.0, 42.0),
+        ("not_a_float", 1.23, "not_a_float"),
+        # bool
+        ("true", True, True),
+        ("false", False, False),
+        ("TRUE", True, True),
+        ("FALSE", False, False),
+        ("yes", True, "yes"),  # not convertible
+        # list
+        ("[1, 2, 3]", [1, 2, 3], [1, 2, 3]),
+        # dict
+        ('{"a": 1}', {"a": 1}, {"a": 1}),
+        # already coerced
+        ("hello", "hello", "hello"),
+        (42, 42, 42),
+        (3.14, 3.14, 3.14),
+        (True, True, True),
+    ],
+)
+def test_coerce_to_actual_type(expected, actual, expected_result):
+    """Test coercion of expected and actual values."""
+    assert coerce_to_actual_type(expected, actual) == expected_result
+
+
+def test_validate_json_body_coerces_float_from_string():
+    """String expected should be coerced to float when actual is float."""
+    response = MockJsonResponse({"price": 1.23})
+    validate_json_body(response, {"price": "1.23"})
+
+
+def test_validate_json_body_coerces_int_from_string():
+    """String expected should be coerced to int when actual is int."""
+    response = MockJsonResponse({"count": 42})
+    validate_json_body(response, {"count": "42"})
+
+
+def test_validate_json_body_coerces_bool_from_string():
+    """String expected should be coerced to bool when actual is bool."""
+    response = MockJsonResponse({"active": True})
+    validate_json_body(response, {"active": "true"})
+
+
+def test_validate_json_body_coerces_list_from_string():
+    """String expected should be coerced to list when actual is list."""
+    response = MockJsonResponse({"items": [1, 2, 3]})
+    validate_json_body(response, {"items": "[1, 2, 3]"})
 
 
 class MockJsonResponse(Response):
