@@ -21,13 +21,6 @@ jobs:
 
       - name: run ruff check
         run: ruff check .
-      
-      - name: run ruff format
-        run: ruff format .
-
-      # - name: mypy check
-      #   run: mypy .
-
 
   unit_tests:
     runs-on: ubuntu-latest
