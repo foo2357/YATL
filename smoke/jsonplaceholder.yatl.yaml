@@ -1,0 +1,22 @@
+base_url: https://jsonplaceholder.typicode.com
+
+steps:
+
+  - name: create_post
+    request:
+      method: POST
+      url: /posts
+      timeout: 5
+      body:
+        json:
+          title: YATL - api testing in a new way
+          body: Test body
+          userId: 1
+    expect:
+      status: 201
+      body:
+        json:
+          id: 101
+          title: YATL - api testing in a new way
+          body: Test body
+          userId: 1
