@@ -15,50 +15,22 @@ from .colors import (
 )
 from .extractor import DataExtractor
 from .interface import IReporter, ITemplateRenderer
-from .render import TemplateRenderer
 from .reporter import Reporter
 from .step_executor import execute_step
 from .utils import create_context, is_skipped, load_test_yaml, search_files
 from .validator import ResponseValidator
 
 
-def run_tests_concurrently(runner, test_path: str = ".", max_workers: int = 10) -> None:
+def run_tests_concurrently(
+    runner: Runner, test_path: str = ".", max_workers: int = 10, concurrent: bool = True
+) -> None:
     """Runs all tests in parallel.
 
     Args:
         runner: Runner instance with a run_test method.
         test_path: Path to directory containing test files.
         max_workers: Maximum number of worker threads, default 10.
-    """
-    files = search_files(test_path)
-    if not files:
-        print(skipped(f"No .yatl.yaml files found in {test_path}"))
-        return
-
-    print(info(f"Found {len(files)} test file(s)"))
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(runner.run_test, file): file for file in files}
-        error_messages = []
-        for future in as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                error_messages.append(f"Test {futures[future]} failed with error: {e}")
-
-        if error_messages:
-            print(error(f"{len(error_messages)} test(s) failed"))
-            for message in error_messages:
-                print(error(message))
-            sys.exit(1)
-
-
-def run_test_not_concurrently(runner, test_path: str = ".") -> None:
-    """Runs all tests one by one.
-
-    Args:
-        runner: Runner instance with a run_test method.
-        test_path: Path to directory containing test files.
+        concurrent: Whether to run tests concurrently, default True.
     """
     files = search_files(test_path)
     error_messages = []
@@ -69,11 +41,23 @@ def run_test_not_concurrently(runner, test_path: str = ".") -> None:
 
     print(info(f"Found {len(files)} test file(s)"))
 
-    for file in files:
-        try:
-            runner.run_test(file)
-        except Exception as e:
-            error_messages.append(f"Test {file} failed with error: {e}")
+    if concurrent:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(runner.run_test, file): file for file in files}
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    error_messages.append(
+                        f"Test {futures[future]} failed with error: {e}"
+                    )
+
+    else:
+        for file in files:
+            try:
+                runner.run_test(file)
+            except Exception as e:
+                error_messages.append(f"Test {file} failed with error: {e}")
 
     if error_messages:
         print(error(f"{len(error_messages)} test(s) failed"))
